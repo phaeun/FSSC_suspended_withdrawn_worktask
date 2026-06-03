@@ -640,7 +640,10 @@ function renderDash(){
   const mN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
   document.getElementById('sub-month').textContent=`${mN[(cm-1+12)%12]} ~ ${mN[(cm+2)%12]} 만료 업체`;
   const btnH=document.getElementById('btn-hidden');
-  if(btnH){btnH.style.display=monthHidden.length>0?'':'none';btnH.innerHTML=showHidden?`🔓 숨김 ${monthHidden.length} (접기)`:`🔒 숨김 ${monthHidden.length}`;document.getElementById('cnt-hidden').textContent=monthHidden.length;}
+  if(btnH){
+    btnH.style.display=monthHidden.length>0?'':'none';
+    btnH.innerHTML=showHidden?`🔓 숨김 ${monthHidden.length} (접기)`:`🔒 숨김 ${monthHidden.length}`;
+  }
   fillMonthTbl(month,showHidden?monthHidden:[]);
   revoke.sort((a,b)=>{if(!a.suspendDate&&!b.suspendDate)return 0;if(!a.suspendDate)return 1;if(!b.suspendDate)return -1;return a.suspendDate-b.suspendDate;});
   fillSimple('tb-suspend',suspend);
