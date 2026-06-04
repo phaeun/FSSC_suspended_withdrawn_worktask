@@ -1153,11 +1153,11 @@ function saveEditMode(idx,ctx){
   };
   edits[r.jobNo]=ed;
   saveEdits(edits);
-  // merged에도 즉시 반영
   Object.assign(merged[idx],ed);
   renderDashContent();renderAll();
   openModal(idx,ctx);
 }
+function saveReqModal(jobNo,field,val,idx,ctx){
   const c=getChecks();if(!c[jobNo])c[jobNo]={};c[jobNo][field]=val;saveChecks(c);
   renderDashContent();renderAll();openModal(idx,ctx);
 }
@@ -1275,44 +1275,48 @@ function goTabById(id){goTab(id,null);}
 function initApp() {
   setTxt('lbl-today',TODAY.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'}));
   if(LS.get('theme')==='light'){document.body.classList.add('light');document.getElementById('theme-btn').textContent='☀️';}
-
-  // 로컬 데이터로 먼저 시작
-  const fsscData=LS.get('fsscRaw'),fsscName=LS.get('fsscName');
-  if(fsscData&&fsscData.length&&'Client number' in fsscData[0]){fsscRaw=fsscData;if(fsscName)setTxt('lbl-fssc',fsscName);}
-  const jobData=LS.get('jobRaw'),jobName=LS.get('jobName');
-  if(jobData&&jobData.length&&'New Job No.' in jobData[0]){jobRaw=jobData;if(jobName)setTxt('lbl-job',jobName);}
-  const igcName=LS.get('igcName');if(igcName)setTxt('lbl-igc',igcName);
-  if((fsscRaw&&jobRaw)||Object.keys(getIgcStore()).length>0) mergeAndRender();
   renderEmailTab();renderCal();initTabDrag();
 
-  // Firestore에서 최신 데이터 백그라운드 로드
-  if(window.FS) {
-    const keys=['emails2','checks','igcStore','overrides','fsscRaw','fsscName','jobRaw','jobName','igcName'];
+  // 로딩 표시
+  document.getElementById('dash-content').innerHTML='<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px">⏳ 데이터 불러오는 중...</div>';
+
+  if(window.FS){
+    // Firebase에서 모든 데이터 로드 후 렌더
+    const keys=['emails2','checks','igcStore','overrides','edits','schedules','fsscRaw','fsscName','jobRaw','jobName','igcName'];
     Promise.all(keys.map(async k=>{
       const val=await window.FS.load(k);
       if(val!==null){FSCache[k]=val;LS.set(k,val);}
     })).then(()=>{
-      // Firestore 로드 완료 후 재렌더
-      const fd=fsGet('fsscRaw'),fn=fsGet('fsscName');
-      if(fd&&fd.length&&'Client number' in fd[0]){fsscRaw=fd;if(fn)setTxt('lbl-fssc',fn);}
-      const jd=fsGet('jobRaw'),jn=fsGet('jobName');
-      if(jd&&jd.length&&'New Job No.' in jd[0]){jobRaw=jd;if(jn)setTxt('lbl-job',jn);}
-      const ig=fsGet('igcName');if(ig)setTxt('lbl-igc',ig);
-      if((fsscRaw&&jobRaw)||Object.keys(getIgcStore()).length>0) mergeAndRender();
-      renderEmailTab();
-    });
-
-    // 실시간 동기화
-    ['checks','overrides','igcStore','emails2'].forEach(key=>{
-      window.FS.watch(key,val=>{
-        FSCache[key]=val;LS.set(key,val);
-        if(merged.length>0){
-          if(key==='igcStore')mergeAndRender();
-          else{renderDashContent();renderAll();}
-        }
+      _startRender();
+      // 실시간 동기화
+      ['checks','overrides','igcStore','emails2','edits','schedules'].forEach(key=>{
+        window.FS.watch(key,val=>{
+          FSCache[key]=val;LS.set(key,val);
+          if(merged.length>0){
+            if(key==='igcStore')mergeAndRender();
+            else{renderDashContent();renderAll();}
+          }
+        });
       });
+    }).catch(e=>{
+      console.error('Firebase 로드 실패, 로컬로 시작:', e);
+      _startRender();
     });
+  } else {
+    // Firebase 없으면 로컬로 시작
+    _startRender();
   }
+}
+
+function _startRender(){
+  const fsscData=fsGet('fsscRaw'),fsscName=fsGet('fsscName');
+  if(fsscData&&fsscData.length&&'Client number' in fsscData[0]){fsscRaw=fsscData;if(fsscName)setTxt('lbl-fssc',fsscName);}
+  const jobData=fsGet('jobRaw'),jobName=fsGet('jobName');
+  if(jobData&&jobData.length&&'New Job No.' in jobData[0]){jobRaw=jobData;if(jobName)setTxt('lbl-job',jobName);}
+  const igcName=fsGet('igcName');if(igcName)setTxt('lbl-igc',igcName);
+  if((fsscRaw&&jobRaw)||Object.keys(getIgcStore()).length>0) mergeAndRender();
+  else renderDashContent(); // 빈 화면이라도 렌더
+  renderEmailTab();
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
