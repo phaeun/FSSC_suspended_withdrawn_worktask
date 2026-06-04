@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>정지/취소 업무 관리</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyCL94eGaBNqVFRZX2cAjcldhQs15tuoGFM",
   authDomain: "suspendedandwithdrawn-4f2bc.firebaseapp.com",
@@ -17,34 +16,27 @@ const firebaseConfig = {
   messagingSenderId: "1015336266131",
   appId: "1:1015336266131:web:74ab1dc55bd75d95c9e066"
 };
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-// Firestore 저장/읽기 함수 (전역 노출)
 window.FS = {
   async save(key, value) {
-    try {
-      await setDoc(doc(db, 'dashboard', key), { value: JSON.stringify(value) });
-    } catch(e) { console.error('FS.save 오류:', e); }
+    try { await db.collection('dashboard').doc(key).set({ value: JSON.stringify(value) }); }
+    catch(e) { console.error('FS.save 오류:', e); }
   },
   async load(key) {
     try {
-      const snap = await getDoc(doc(db, 'dashboard', key));
-      if (snap.exists()) return JSON.parse(snap.data().value);
+      const snap = await db.collection('dashboard').doc(key).get();
+      if(snap.exists) return JSON.parse(snap.data().value);
     } catch(e) { console.error('FS.load 오류:', e); }
     return null;
   },
-  // 실시간 변경 감지
   watch(key, callback) {
-    return onSnapshot(doc(db, 'dashboard', key), snap => {
-      if (snap.exists()) {
-        try { callback(JSON.parse(snap.data().value)); } catch(e) {}
-      }
+    return db.collection('dashboard').doc(key).onSnapshot(snap => {
+      if(snap.exists) { try { callback(JSON.parse(snap.data().value)); } catch(e){} }
     });
   }
 };
-
-// Firestore 로드 완료 알림
 window._fsReady = true;
 document.dispatchEvent(new Event('fs-ready'));
 </script>
