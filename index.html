@@ -925,9 +925,45 @@ function renderEmailTab(){
   if(!keys.length){tb.innerHTML='<tr class="empty"><td colspan="4">등록된 이메일 없음</td></tr>';return;}
   tb.innerHTML=keys.map(k=>{
     const entry=emails[k];
-    const aliases=(entry.aliases||[]).map(a=>`<span class="alias-tag">${a}<button onclick="removeAlias('${k.replace(/'/g,"\\'")}','${a.replace(/'/g,"\\'")}')">×</button></span>`).join('');
-    return`<tr><td>${k}</td><td>${entry.email||''}</td><td><div class="alias-tags">${aliases}</div></td><td><button class="tbtn" style="padding:3px 8px;font-size:11px" onclick="delEmail('${k.replace(/'/g,"\\'")}')">삭제</button></td></tr>`;
+    const kEsc=k.replace(/'/g,"\\'");
+    const aliases=(entry.aliases||[]).map(a=>{
+      const aEsc=a.replace(/'/g,"\\'");
+      return`<span class="alias-tag" title="더블클릭하여 편집" ondblclick="editAlias('${kEsc}','${aEsc}',this)">${a}<button onclick="event.stopPropagation();removeAlias('${kEsc}','${aEsc}')">×</button></span>`;
+    }).join('');
+    // 빈 영역 더블클릭 → 새 별칭 추가
+    return`<tr>
+      <td>${k}</td>
+      <td>${entry.email||''}</td>
+      <td>
+        <div class="alias-tags" ondblclick="quickAddAlias(event,'${kEsc}')" title="빈 곳을 더블클릭하여 별칭 추가">
+          ${aliases}
+          <span class="alias-tag" style="border-style:dashed;color:var(--muted);cursor:pointer" ondblclick="event.stopPropagation();quickAddAlias(event,'${kEsc}')">+ 추가</span>
+        </div>
+      </td>
+      <td><button class="tbtn" style="padding:3px 8px;font-size:11px" onclick="delEmail('${kEsc}')">삭제</button></td>
+    </tr>`;
   }).join('');
+}
+
+function quickAddAlias(event, name){
+  event.stopPropagation();
+  const kw=prompt(`"${name}"에 추가할 별칭 키워드를 입력하세요:`);
+  if(!kw||!kw.trim())return;
+  const emails=getEmails();
+  if(!emails[name])return;
+  if(!emails[name].aliases)emails[name].aliases=[];
+  if(!emails[name].aliases.includes(kw.trim()))emails[name].aliases.push(kw.trim());
+  saveEmails(emails);renderEmailTab();showMsg(`별칭 "${kw.trim()}" 추가됐어요.`);
+}
+
+function editAlias(name, oldKw, el){
+  const newKw=prompt(`별칭 수정:`, oldKw);
+  if(!newKw||!newKw.trim()||newKw.trim()===oldKw)return;
+  const emails=getEmails();
+  if(!emails[name]?.aliases)return;
+  const idx=emails[name].aliases.indexOf(oldKw);
+  if(idx>-1)emails[name].aliases[idx]=newKw.trim();
+  saveEmails(emails);renderEmailTab();showMsg(`별칭이 "${newKw.trim()}"으로 수정됐어요.`);
 }
 function addEmail(){
   const name=document.getElementById('ei-name').value.trim(),email=document.getElementById('ei-email').value.trim();
