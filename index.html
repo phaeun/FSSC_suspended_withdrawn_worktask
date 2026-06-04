@@ -527,9 +527,28 @@ function loadEmailFile(ev){
     const ws=wb.Sheets[wb.SheetNames[0]];
     const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     const emails=getEmails();let added=0;
-    arr.forEach(row=>{
-      const name=String(row[0]||'').trim(),email=String(row[1]||'').trim();
-      if(name&&email&&email.includes('@')){if(!emails[name])emails[name]={email,aliases:[]};else emails[name].email=email;added++;}
+    // 헤더 행이 있는지 확인 (첫 행에 이메일이 없으면 헤더로 간주)
+    const firstRow=arr[0]||[];
+    const hasHeader=firstRow.some(c=>String(c).includes('@')===false&&String(c).trim().length>0);
+    let hdrIdx={name:0,email:1,phone:-1};
+    if(hasHeader){
+      firstRow.forEach((h,i)=>{
+        const s=String(h).trim().toLowerCase();
+        if(s.includes('이름')||s.includes('컨설팅'))hdrIdx.name=i;
+        if(s.includes('이메일')||s.includes('email')||s.includes('mail'))hdrIdx.email=i;
+        if(s.includes('전화')||s.includes('연락처')||s.includes('번호')||s.includes('phone')||s.includes('tel'))hdrIdx.phone=i;
+      });
+    }
+    const dataRows=hasHeader?arr.slice(1):arr;
+    dataRows.forEach(row=>{
+      const name=String(row[hdrIdx.name]||'').trim();
+      const email=String(row[hdrIdx.email]||'').trim();
+      const phone=hdrIdx.phone>=0?String(row[hdrIdx.phone]||'').trim():'';
+      if(name&&email&&email.includes('@')){
+        if(!emails[name])emails[name]={email,phone,aliases:[]};
+        else{emails[name].email=email;if(phone)emails[name].phone=phone;}
+        added++;
+      }
     });
     saveEmails(emails);renderEmailTab();showMsg(`${added}개 저장됐어요.`);
   });ev.target.value='';
@@ -690,7 +709,12 @@ function renderReqRows(rows,checks){
   if(!rows.length)return'<tr class="empty"><td colspan="4">요청된 업체 없음</td></tr>';
   return rows.map(r=>{
     const c=checks[r.jobNo]||{};
-    const tags=[c.suspend?'<span class="chip co" style="margin-right:3px">정지</span>':'',c.revoke?'<span class="chip cr" style="margin-right:3px">철회</span>':'',c.revoke1?'<span class="chip cr" style="margin-right:3px">철회(1차)</span>':'',c.revoke2?'<span class="chip cr">철회(2차)</span>':''].join('');
+    const tags=[
+      c.suspend?`<div><span class="chip co" style="margin-right:3px">정지</span>${c.suspendReason?`<span style="font-size:10px;color:var(--muted)">${c.suspendReason}</span>`:''}</div>`:'',
+      c.revoke?`<div><span class="chip cr" style="margin-right:3px">철회</span>${c.revokeReason?`<span style="font-size:10px;color:var(--muted)">${c.revokeReason}</span>`:''}</div>`:'',
+      c.revoke1?`<div><span class="chip cr" style="margin-right:3px">철회(1차)</span></div>`:'',
+      c.revoke2?`<div><span class="chip cr">철회(2차)</span></div>`:''
+    ].join('');
     return`<tr onclick="openModal(${r.idx},'month')"><td title="${r.partner}">${r.partner||'-'}</td><td title="${r.nameKo}">${r.nameKo||r.nameEn||'-'}</td><td>${r.jobNo}</td><td>${tags}</td></tr>`;
   }).join('');
 }
@@ -911,16 +935,44 @@ function renderAll(){
     const tb=document.getElementById('tb-all');
     if(!rows.length){tb.innerHTML='<tr class="empty"><td colspan="15">데이터 없음</td></tr>';return;}
     const checks=getChecks();
+    const REQ_REASONS=['컨설팅사 요청','고객사 요청','후속심사 미진행'];
     tb.innerHTML=rows.map(r=>{
       const c=checks[r.jobNo]||{};
       const isOverseas=r.country&&r.country.toUpperCase()!=='KOREA';
       const srcBadge=r.src==='IGC'?'<span class="chip cb" style="font-size:9px">IGC</span>':'<span class="chip cgr" style="font-size:9px">FSSC</span>';
       const overseas=isOverseas?'<span class="chip-overseas">해외</span>':'';
-      return`<tr><td>${srcBadge}</td><td>${statusChip(r.status)}</td><td>${overseas}</td><td title="${r.partner}">${r.partner||'-'}</td><td title="${r.nameKo}" class="mv hi" style="cursor:pointer" onclick="openModal(${r.idx})">${r.nameKo||'-'}</td><td title="${r.nameEn}">${r.nameEn||'-'}</td><td>${r.jobNo}</td><td>${r.coid||'-'}</td><td>${fmt(r.issuedDate)}</td><td>${fmt(r.expDate)}</td><td>${ddayChip(r.expDate)}</td><td title="${r.email}">${r.email||'-'}</td><td>${r.phone||'-'}</td><td style="text-align:center" onclick="event.stopPropagation()"><input type="checkbox" ${c.suspend?'checked':''} style="width:15px;height:15px;cursor:pointer;accent-color:#f0a040" onchange="saveReq('${r.jobNo}','suspend',this.checked)"></td><td style="text-align:center" onclick="event.stopPropagation()"><input type="checkbox" ${c.revoke?'checked':''} style="width:15px;height:15px;cursor:pointer;accent-color:#ff6b6b" onchange="saveReq('${r.jobNo}','revoke',this.checked)"></td></tr>`;
+      const suspendDrop=c.suspend?`<select style="font-size:10px;padding:2px 4px;border-radius:3px;border:1px solid var(--border);background:var(--panel2);color:var(--text);margin-top:2px" onchange="saveReqReason('${r.jobNo}','suspendReason',this.value)" onclick="event.stopPropagation()"><option value="">사유 선택</option>${REQ_REASONS.map(rs=>`<option ${c.suspendReason===rs?'selected':''}>${rs}</option>`).join('')}</select>`:'';
+      const revokeDrop=c.revoke?`<select style="font-size:10px;padding:2px 4px;border-radius:3px;border:1px solid var(--border);background:var(--panel2);color:var(--text);margin-top:2px" onchange="saveReqReason('${r.jobNo}','revokeReason',this.value)" onclick="event.stopPropagation()"><option value="">사유 선택</option>${REQ_REASONS.map(rs=>`<option ${c.revokeReason===rs?'selected':''}>${rs}</option>`).join('')}</select>`:'';
+      return`<tr><td>${srcBadge}</td><td>${statusChip(r.status)}</td><td>${overseas}</td><td title="${r.partner}">${r.partner||'-'}</td><td title="${r.nameKo}" class="mv hi" style="cursor:pointer" onclick="openModal(${r.idx})">${r.nameKo||'-'}</td><td title="${r.nameEn}">${r.nameEn||'-'}</td><td>${r.jobNo}</td><td>${r.coid||'-'}</td><td>${fmt(r.issuedDate)}</td><td>${fmt(r.expDate)}</td><td>${ddayChip(r.expDate)}</td><td title="${r.email}">${r.email||'-'}</td><td>${r.phone||'-'}</td>
+      <td style="text-align:center" onclick="event.stopPropagation()">
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <input type="checkbox" ${c.suspend?'checked':''} style="width:15px;height:15px;cursor:pointer;accent-color:#f0a040" onchange="saveReq('${r.jobNo}','suspend',this.checked)">
+          ${suspendDrop}
+        </div>
+      </td>
+      <td style="text-align:center" onclick="event.stopPropagation()">
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <input type="checkbox" ${c.revoke?'checked':''} style="width:15px;height:15px;cursor:pointer;accent-color:#ff6b6b" onchange="saveReq('${r.jobNo}','revoke',this.checked)">
+          ${revokeDrop}
+        </div>
+      </td></tr>`;
     }).join('');
   }catch(e){console.error('renderAll 오류:',e);}
 }
-function saveReq(jobNo,field,val){const c=getChecks();if(!c[jobNo])c[jobNo]={};c[jobNo][field]=val;saveChecks(c);renderDashContent();}
+function saveReq(jobNo,field,val){
+  const c=getChecks();if(!c[jobNo])c[jobNo]={};
+  c[jobNo][field]=val;
+  // 체크 해제 시 사유도 초기화
+  if(!val){
+    if(field==='suspend')delete c[jobNo].suspendReason;
+    if(field==='revoke')delete c[jobNo].revokeReason;
+  }
+  saveChecks(c);renderDashContent();renderAll();
+}
+function saveReqReason(jobNo,field,val){
+  const c=getChecks();if(!c[jobNo])c[jobNo]={};
+  c[jobNo][field]=val;saveChecks(c);renderDashContent();
+}
 
 // ── CALENDAR ──
 function calMove(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}else if(calMonth<0){calMonth=11;calYear--;}renderCal();}
