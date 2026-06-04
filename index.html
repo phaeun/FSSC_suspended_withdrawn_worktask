@@ -225,6 +225,16 @@ body.light .mini-cell.today-mini{background:#fff7f0}
 .schedule-add input{flex:1;padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:11px;font-family:inherit}
 .schedule-add input[type=date]{flex:0 0 120px}
 .schedule-add input::placeholder{color:var(--muted)}
+/* NOTICE GENERATOR */
+.notice-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:14px}
+.notice-hd{padding:10px 14px;background:var(--panel2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:13px}
+.notice-body{padding:12px 14px}
+.notice-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.notice-row label{font-size:12px;color:var(--muted);min-width:40px}
+.notice-sel{padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px;font-family:inherit;flex:1}
+.notice-result{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:12px;color:var(--text);white-space:pre-wrap;line-height:1.8;min-height:80px;margin-top:8px;word-break:break-all}
+.notice-copy{padding:5px 12px;border-radius:5px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-size:12px;font-family:inherit}
+.notice-copy:hover{background:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -691,6 +701,7 @@ function renderDashContent(){
       <div class="col-right">
         ${renderMiniCalHtml()}
         ${renderScheduleHtml()}
+        ${renderNoticeGenHtml()}
       </div>
     </div>`;
   }catch(e){console.error('renderDashContent 오류:',e);}
@@ -914,6 +925,124 @@ function delSchedule(i){
 }
 
 function renderUrgentRows(rows){
+  if(!rows.length)return'<tr class="empty"><td colspan="2">해당 없음</td></tr>';
+  return rows.map(r=>`<tr onclick="openModal(${r.idx})"><td title="${r.nameKo}">${r.nameKo||r.nameEn||'-'}</td><td>${ddayChip(r.expDate)} ${fmt(r.expDate)}</td></tr>`).join('');
+}
+
+function renderNoticeGenHtml(){
+  const checks=getChecks();
+  const src=getMiniSrc();
+  // 요청 업체 중 정지 또는 철회 요청된 것
+  const suspendList=merged.filter(r=>r.src===src&&(checks[r.jobNo]||{}).suspend);
+  const revokeList=merged.filter(r=>r.src===src&&(checks[r.jobNo]||{}).revoke);
+  const allReq=[...suspendList,...revokeList];
+
+  const suspendOpts=suspendList.map(r=>{
+    const c=checks[r.jobNo]||{};
+    return`<option value="${r.jobNo}|suspend">${r.nameKo||r.nameEn} (정지${c.suspendReason?'/'+c.suspendReason:''})</option>`;
+  }).join('');
+  const revokeOpts=revokeList.map(r=>{
+    const c=checks[r.jobNo]||{};
+    return`<option value="${r.jobNo}|revoke">${r.nameKo||r.nameEn} (철회${c.revokeReason?'/'+c.revokeReason:''})</option>`;
+  }).join('');
+
+  return`<div class="notice-wrap">
+    <div class="notice-hd">📢 단톡 공지 생성기</div>
+    <div class="notice-body">
+      <div class="notice-row">
+        <label>규격</label>
+        <select class="notice-sel" id="ng-scheme" onchange="genNotice()">
+          <option value="FSSC 22000">FSSC 22000</option>
+          <option value="GIC ISO 22000">GIC ISO 22000</option>
+          <option value="IGC ISO 22000">IGC ISO 22000</option>
+        </select>
+      </div>
+      <div class="notice-row">
+        <label>유형</label>
+        <select class="notice-sel" id="ng-type" onchange="genNotice()">
+          <option value="정지">정지</option>
+          <option value="철회">철회</option>
+        </select>
+      </div>
+      <div class="notice-row">
+        <label>건수</label>
+        <select class="notice-sel" id="ng-multi" onchange="genNotice()">
+          <option value="single">단수</option>
+          <option value="multi">복수</option>
+        </select>
+      </div>
+      <div class="notice-row">
+        <label>사유</label>
+        <select class="notice-sel" id="ng-reason" onchange="genNotice()">
+          <option value="">사유 선택</option>
+          <option value="후속 심사 미진행">후속 심사 미진행</option>
+          <option value="컨설팅사 요청">컨설팅사 요청</option>
+          <option value="고객사 요청">고객사 요청</option>
+        </select>
+      </div>
+      <div class="notice-row" style="align-items:flex-start">
+        <label>업체</label>
+        <select class="notice-sel" id="ng-items" multiple style="min-height:80px" onchange="genNotice()">
+          ${suspendOpts||revokeOpts?suspendOpts+revokeOpts:'<option disabled>요청 업체 없음</option>'}
+        </select>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">Ctrl 클릭으로 여러 업체 선택 가능</div>
+      <div class="notice-result" id="ng-result">공지 미리보기</div>
+      <div style="text-align:right;margin-top:8px">
+        <button class="notice-copy" onclick="copyNotice()">📋 복사</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function genNotice(){
+  const scheme=document.getElementById('ng-scheme')?.value||'FSSC 22000';
+  const type=document.getElementById('ng-type')?.value||'정지';
+  const multi=document.getElementById('ng-multi')?.value||'single';
+  const reason=document.getElementById('ng-reason')?.value||'';
+  const sel=document.getElementById('ng-items');
+  const selected=sel?Array.from(sel.selectedOptions).map(o=>o.value):[];
+  const checks=getChecks();
+
+  let lines=`아래 업체 ${scheme} 인증 ${type} 진행하겠습니다\n\n`;
+
+  if(selected.length===0){
+    lines+='(업체를 선택해 주세요)';
+  }else if(multi==='single'||selected.length===1){
+    // 단수: 업체별 사유 개별 표시
+    selected.forEach(v=>{
+      const [jobNo,reqType]=v.split('|');
+      const r=merged.find(x=>x.jobNo===jobNo);
+      if(!r)return;
+      const c=checks[jobNo]||{};
+      const itemReason=reqType==='suspend'?c.suspendReason:c.revokeReason;
+      const finalReason=reason||itemReason||'';
+      lines+=`- ${r.nameKo||r.nameEn} / ${r.partner||'-'}\n`;
+      if(finalReason)lines+=`  사유 : ${finalReason}\n`;
+    });
+  }else{
+    // 복수: 업체 목록 먼저, 사유 한 번만
+    selected.forEach(v=>{
+      const [jobNo]=v.split('|');
+      const r=merged.find(x=>x.jobNo===jobNo);
+      if(!r)return;
+      lines+=`- ${r.nameKo||r.nameEn} / ${r.partner||'-'}\n`;
+    });
+    if(reason)lines+=`  사유 : ${reason}`;
+  }
+
+  const el=document.getElementById('ng-result');
+  if(el)el.textContent=lines.trim();
+}
+
+function copyNotice(){
+  const text=document.getElementById('ng-result')?.textContent||'';
+  if(!text||text==='공지 미리보기')return;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.querySelector('.notice-copy');
+    if(btn){btn.textContent='✅ 복사됨';setTimeout(()=>btn.textContent='📋 복사',2000);}
+  });
+}
   if(!rows.length)return'<tr class="empty"><td colspan="2">해당 없음</td></tr>';
   return rows.map(r=>`<tr onclick="openModal(${r.idx})"><td title="${r.nameKo}">${r.nameKo||r.nameEn||'-'}</td><td>${ddayChip(r.expDate)} ${fmt(r.expDate)}</td></tr>`).join('');
 }
