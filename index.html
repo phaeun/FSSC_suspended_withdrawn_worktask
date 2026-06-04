@@ -99,6 +99,7 @@ input[type=file]{display:none}
 .dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start}
 .col-left{display:flex;flex-direction:column;gap:14px}
 .col-mid{display:flex;flex-direction:column;gap:14px}
+.col-right{display:flex;flex-direction:column;gap:0}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 .card.urg{background:var(--redbg);border-color:var(--red)}
 .card-hd{padding:11px 16px;background:var(--panel2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
@@ -192,8 +193,38 @@ body.light .cal-legend-item{color:#506070}
 .cal-popup-row{padding:6px 8px;border-radius:5px;margin-bottom:4px;cursor:pointer;font-size:12px;background:var(--hover);color:var(--text)}
 .cal-popup-row:hover{background:var(--panel2)}
 .cal-popup-close{float:right;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px}
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+/* MINI CALENDAR */
+.mini-cal{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.mini-cal-hd{padding:10px 14px;background:var(--panel2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:13px}
+.mini-cal-nav{display:flex;align-items:center;gap:6px}
+.mini-cal-nav button{background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;padding:2px 7px;font-size:12px}
+.mini-cal-nav button:hover{border-color:var(--accent);color:var(--accent)}
+.mini-cal-title{font-size:12px;font-weight:600;min-width:80px;text-align:center}
+.mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);margin:0}
+.mini-head{background:var(--panel2);text-align:center;font-size:10px;color:var(--muted);padding:4px 2px}
+.mini-head.sun{color:#ff6b6b}.mini-head.sat{color:#5a9fd4}
+.mini-cell{background:var(--panel);text-align:center;padding:3px 2px;font-size:11px;color:var(--muted);cursor:default;min-height:32px;position:relative}
+.mini-cell.has-event{cursor:pointer}
+.mini-cell.has-event:hover{background:var(--hover)}
+.mini-cell.today-mini{background:#1a2e44;color:var(--accent);font-weight:700}
+body.light .mini-cell.today-mini{background:#fff7f0}
+.mini-cell.other-m{opacity:.35}
+.mini-dot{display:flex;justify-content:center;gap:2px;margin-top:1px}
+.mini-dot span{width:5px;height:5px;border-radius:50%;display:inline-block}
+/* SCHEDULE */
+.schedule-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:14px}
+.schedule-hd{padding:10px 14px;background:var(--panel2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:13px}
+.schedule-list{max-height:200px;overflow-y:auto}
+.schedule-item{display:flex;align-items:flex-start;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(36,61,85,.3)}
+.schedule-item:last-child{border-bottom:none}
+.schedule-date{font-size:11px;color:var(--muted);white-space:nowrap;min-width:70px}
+.schedule-text{font-size:12px;color:var(--text);flex:1;word-break:break-all}
+.schedule-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0 2px}
+.schedule-del:hover{color:#ff6b6b}
+.schedule-add{display:flex;gap:6px;padding:8px 14px;border-top:1px solid var(--border)}
+.schedule-add input{flex:1;padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:11px;font-family:inherit}
+.schedule-add input[type=date]{flex:0 0 120px}
+.schedule-add input::placeholder{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -324,7 +355,7 @@ body.light .cal-legend-item{color:#506070}
     </div>
     <div class="etbl-wrap">
       <table>
-        <thead><tr><th style="width:180px">컨설팅사명</th><th style="width:200px">이메일</th><th>별칭 키워드</th><th style="width:60px">삭제</th></tr></thead>
+        <thead><tr><th style="width:160px">컨설팅사명</th><th style="width:180px">이메일</th><th style="width:130px">전화번호</th><th>별칭 키워드</th><th style="width:60px">삭제</th></tr></thead>
         <tbody id="tb-email"></tbody>
       </table>
     </div>
@@ -332,6 +363,7 @@ body.light .cal-legend-item{color:#506070}
     <div class="eadd">
       <input type="text" id="ei-name" placeholder="컨설팅사명">
       <input type="text" id="ei-email" placeholder="이메일">
+      <input type="text" id="ei-phone" placeholder="전화번호">
       <button class="tbtn pri" onclick="addEmail()">+ 추가</button>
     </div>
     <div style="font-size:12px;font-weight:600;color:var(--text);margin:10px 0 6px">별칭 추가</div>
@@ -616,8 +648,8 @@ function renderDashContent(){
         </div>
       </div>
       <div class="col-mid">
-        <div class="card">
-          <div class="card-hd">정지 예정 업체 <span class="badge">${suspend.length}</span></div>
+        <div class="card urg">
+          <div class="card-hd">!! URGENT !! <span class="badge r">${suspend.length}</span></div>
           <div class="card-sub">만료일 10일 전인 업체</div>
           <div class="tbl-wrap">
             <table>
@@ -637,15 +669,9 @@ function renderDashContent(){
           </div>
         </div>
       </div>
-      <div class="card urg">
-        <div class="card-hd">!! URGENT !! <span class="badge r">${urgent.length}</span></div>
-        <div class="card-sub">현재일로부터 만료일 10일 이내</div>
-        <div class="tbl-wrap urg">
-          <table>
-            <thead><tr><th>업체명</th><th>만료일</th></tr></thead>
-            <tbody>${renderUrgentRows(urgent)}</tbody>
-          </table>
-        </div>
+      <div class="col-right">
+        ${renderMiniCalHtml()}
+        ${renderScheduleHtml()}
       </div>
     </div>`;
   }catch(e){console.error('renderDashContent 오류:',e);}
@@ -687,6 +713,152 @@ function renderRevokeRows(rows){
     return`<tr onclick="openModal(${r.idx},'revoke')"><td title="${r.partner}">${r.partner||'-'}</td><td title="${r.nameKo}">${r.nameKo||r.nameEn||'-'}</td><td>${r.jobNo}</td><td>${fmt(r.suspendDate)}</td><td><span class="chip ${cls}">${el!==null?el+'일 경과':'날짜없음'}</span></td></tr>`;
   }).join('');
 }
+// ── 미니 달력 ──
+let miniYear=TODAY.getFullYear(), miniMonth=TODAY.getMonth();
+
+function getMiniSrc(){ return curSubTab==='fssc'?'FSSC':'IGC'; }
+
+function renderMiniCalHtml(){
+  const src=getMiniSrc();
+  const mN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const firstDay=new Date(miniYear,miniMonth,1).getDay();
+  const lastDate=new Date(miniYear,miniMonth+1,0).getDate();
+  const prevLast=new Date(miniYear,miniMonth,0).getDate();
+
+  // 날짜별 이벤트 집계
+  const dateMap={};
+  merged.filter(r=>r.src===src).forEach(r=>{
+    const st=r.status;const isActive=(st==='정상'||st==='유지'||st==='진행중');
+    const n=diff(r.expDate);
+    if(r.expDate&&r.expDate.getFullYear()===miniYear&&r.expDate.getMonth()===miniMonth&&isActive){
+      const k=r.expDate.getDate();
+      if(!dateMap[k])dateMap[k]={expire:0,suspend:0};
+      if(n!==null&&n>=0&&n<=10)dateMap[k].suspend++;
+      else dateMap[k].expire++;
+    }
+    const isRevoke=(st==='정지'||st==='정지(Suspended)');
+    const fsscRevoke=r.src==='FSSC'&&(r.fsscStatus||'').toLowerCase()==='suspended';
+    if(isRevoke&&(r.src==='IGC'||fsscRevoke)&&r.suspendDate){
+      if(r.suspendDate.getFullYear()===miniYear&&r.suspendDate.getMonth()===miniMonth){
+        const k=r.suspendDate.getDate();
+        if(!dateMap[k])dateMap[k]={expire:0,suspend:0};
+        dateMap[k].suspend++;
+      }
+    }
+  });
+
+  // 일정도 포함
+  const schedules=getSchedules();
+  schedules.forEach(s=>{
+    const d=parseDate(s.date);
+    if(d&&d.getFullYear()===miniYear&&d.getMonth()===miniMonth){
+      const k=d.getDate();
+      if(!dateMap[k])dateMap[k]={expire:0,suspend:0};
+      if(!dateMap[k].schedule)dateMap[k].schedule=0;
+      dateMap[k].schedule++;
+    }
+  });
+
+  const days=['일','월','화','수','목','금','토'];
+  const dCls=['sun','','','','','','sat'];
+  let cells=days.map((d,i)=>`<div class="mini-head ${dCls[i]}">${d}</div>`).join('');
+  for(let i=0;i<firstDay;i++)cells+=`<div class="mini-cell other-m">${prevLast-firstDay+1+i}</div>`;
+  for(let d=1;d<=lastDate;d++){
+    const isToday=d===TODAY.getDate()&&miniMonth===TODAY.getMonth()&&miniYear===TODAY.getFullYear();
+    const ev=dateMap[d];
+    const hasEv=ev&&(ev.expire||ev.suspend||ev.schedule);
+    const dots=ev?[ev.suspend?`<span style="background:#ff6b6b"></span>`:'',ev.expire?`<span style="background:#f0a040"></span>`:'',ev.schedule?`<span style="background:#b06aff"></span>`:''].join(''):'';
+    cells+=`<div class="mini-cell${isToday?' today-mini':''}${hasEv?' has-event':''}" onclick="showMiniPopup(${miniYear},${miniMonth+1},${d},event)">${d}${hasEv?`<div class="mini-dot">${dots}</div>`:''}</div>`;
+  }
+  const remain=(7-(firstDay+lastDate)%7)%7;
+  for(let i=1;i<=remain;i++)cells+=`<div class="mini-cell other-m">${i}</div>`;
+
+  return`<div class="mini-cal">
+    <div class="mini-cal-hd">
+      <span>📅 ${miniYear}년 ${mN[miniMonth]}</span>
+      <div class="mini-cal-nav">
+        <button onclick="miniCalMove(-1)">‹</button>
+        <button onclick="miniCalMove(0)">오늘</button>
+        <button onclick="miniCalMove(1)">›</button>
+      </div>
+    </div>
+    <div class="mini-grid">${cells}</div>
+  </div>`;
+}
+
+function miniCalMove(dir){
+  if(dir===0){miniYear=TODAY.getFullYear();miniMonth=TODAY.getMonth();}
+  else{miniMonth+=dir;if(miniMonth>11){miniMonth=0;miniYear++;}else if(miniMonth<0){miniMonth=11;miniYear--;}}
+  renderDashContent();
+}
+
+function showMiniPopup(y,m,d,e){
+  e.stopPropagation();
+  const src=getMiniSrc();
+  const items=[];
+  merged.filter(r=>r.src===src).forEach(r=>{
+    const st=r.status;const isActive=(st==='정상'||st==='유지'||st==='진행중');
+    const n=diff(r.expDate);
+    if(r.expDate&&r.expDate.getFullYear()===y&&r.expDate.getMonth()===m-1&&r.expDate.getDate()===d&&isActive)
+      items.push({label:`${n!==null&&n>=0&&n<=10?'🔴 정지예정':'🟠 만료예정'} ${r.nameKo||r.nameEn}`,idx:r.idx});
+    const isRevoke=(st==='정지'||st==='정지(Suspended)');
+    const fsscRevoke=r.src==='FSSC'&&(r.fsscStatus||'').toLowerCase()==='suspended';
+    if(isRevoke&&(r.src==='IGC'||fsscRevoke)&&r.suspendDate&&r.suspendDate.getFullYear()===y&&r.suspendDate.getMonth()===m-1&&r.suspendDate.getDate()===d)
+      items.push({label:`🔴 철회예정 ${r.nameKo||r.nameEn}`,idx:r.idx});
+  });
+  getSchedules().forEach(s=>{
+    const sd=parseDate(s.date);
+    if(sd&&sd.getFullYear()===y&&sd.getMonth()===m-1&&sd.getDate()===d)
+      items.push({label:`🟣 ${s.memo}`,idx:null});
+  });
+  if(!items.length)return;
+  const popup=document.getElementById('cal-popup');
+  setTxt('cal-popup-title',`${y}년 ${m}월 ${d}일`);
+  document.getElementById('cal-popup-list').innerHTML=items.map(it=>
+    it.idx!==null?`<div class="cal-popup-row" onclick="openModal(${it.idx})">${it.label}</div>`
+    :`<div class="cal-popup-row" style="cursor:default">${it.label}</div>`
+  ).join('');
+  popup.style.left=Math.min(e.pageX,window.innerWidth-340)+'px';
+  popup.style.top=(e.pageY+10)+'px';
+  popup.classList.add('on');
+}
+
+// ── 일정 관리 ──
+function getSchedules(){ return fsGet('schedules')||[]; }
+function saveSchedules(arr){ fsSet('schedules',arr); }
+
+function renderScheduleHtml(){
+  const schedules=getSchedules().sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const items=schedules.map((s,i)=>`
+    <div class="schedule-item">
+      <span class="schedule-date">${s.date||''}</span>
+      <span class="schedule-text">${s.memo||''}</span>
+      <button class="schedule-del" onclick="delSchedule(${i})">×</button>
+    </div>`).join('');
+  return`<div class="schedule-wrap">
+    <div class="schedule-hd">📋 일정 / 메모 <span class="badge" style="font-size:10px">${schedules.length}</span></div>
+    <div class="schedule-list">${items||'<div style="padding:12px 14px;font-size:12px;color:var(--muted)">일정이 없어요</div>'}</div>
+    <div class="schedule-add">
+      <input type="date" id="sc-date" value="${fmt(TODAY)}">
+      <input type="text" id="sc-memo" placeholder="일정 또는 메모 입력..." onkeydown="if(event.key==='Enter')addSchedule()">
+      <button class="tbtn pri" style="padding:5px 10px" onclick="addSchedule()">+</button>
+    </div>
+  </div>`;
+}
+
+function addSchedule(){
+  const date=document.getElementById('sc-date')?.value;
+  const memo=document.getElementById('sc-memo')?.value.trim();
+  if(!memo)return;
+  const arr=getSchedules();
+  arr.push({date,memo});
+  saveSchedules(arr);
+  renderDashContent();
+}
+function delSchedule(i){
+  const arr=getSchedules();arr.splice(i,1);saveSchedules(arr);renderDashContent();
+}
+
 function renderUrgentRows(rows){
   if(!rows.length)return'<tr class="empty"><td colspan="2">해당 없음</td></tr>';
   return rows.map(r=>`<tr onclick="openModal(${r.idx})"><td title="${r.nameKo}">${r.nameKo||r.nameEn||'-'}</td><td>${ddayChip(r.expDate)} ${fmt(r.expDate)}</td></tr>`).join('');
@@ -845,75 +1017,147 @@ function renderUpd(){
 }
 
 // ── MODAL ──
+// 수정 모드 관련
+const getEdits=()=>LS.get('edits')||{};
+const saveEdits=o=>{LS.set('edits',o);if(window.FS)window.FS.save('edits',o);};
+
 function openModal(idx,ctx=''){
   try{
     const r=merged[idx];if(!r)return;
+    // 수정된 값 있으면 반영
+    const edits=getEdits();
+    const ed=edits[r.jobNo]||{};
+    const rc={...r,...ed}; // 수정값 오버레이
     const checks=getChecks();const c=checks[r.jobNo]||{};
-    const n=diff(r.expDate);
+    const n=diff(rc.expDate);
     const ddayTxt=n===null?'-':n<0?`D+${Math.abs(n)} (만료됨)`:n===0?'D-day':`D-${n}일 남음`;
     const ddayCol=n===null?'':n<=0?'color:#ff6b6b':n<=10?'color:#ff6b6b':n<=30?'color:#f0a040':'color:#4caf8a';
     const sub='margin-left:16px;border-left:2px solid var(--border);border-radius:0 6px 6px 0';
-    const isOverseas=r.country&&r.country.toUpperCase()!=='KOREA';
-    const isFsms=r.src==='IGC';
+    const isOverseas=rc.country&&rc.country.toUpperCase()!=='KOREA';
+    const isFsms=rc.src==='IGC';
     let chkHtml,chkTitle;
     if(ctx==='month'){
       chkTitle='심사주기 안내';
       const chk1=c['chk1']||false,intent1=c['intent1']||false,revoke1=c['revoke1']||false;
       const internal=c['internal']||false;
       if(isFsms){
-        // FSMS: 심사주기 안내 1차만 + 내부심사
         chkHtml=`
-          <div class="chkrow"><input type="checkbox" id="mc-c1" ${chk1?'checked':''} style="accent-color:#5a9fd4" onchange="saveReqModal('${r.jobNo}','chk1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-c1">심사주기 안내 1차</label><span class="chip ${chk1?'cb':'cgr'}">${chk1?'완료':'미완료'}</span></div>
-          ${chk1?`<div class="chkrow" style="${sub}"><input type="checkbox" id="mc-i1" ${intent1?'checked':''} style="accent-color:#5a9fd4" onchange="saveReqModal('${r.jobNo}','intent1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-i1" style="color:#5a9fd4">🔵 인증유지의사 있음</label><span class="chip ${intent1?'cb':'cgr'}">${intent1?'확인':'미확인'}</span></div><div class="chkrow" style="${sub}"><input type="checkbox" id="mc-r1" ${revoke1?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${r.jobNo}','revoke1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-r1" style="color:#ff6b6b">철회 요청</label><span class="chip ${revoke1?'cr':'cgr'}">${revoke1?'요청됨':'미요청'}</span></div>`:''}
-          <div class="chkrow"><input type="checkbox" id="mc-int" ${internal?'checked':''} style="accent-color:#b06aff" onchange="saveReqModal('${r.jobNo}','internal',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-int">내부심사</label><span class="chip" style="${internal?'background:#2a1a40;color:#b06aff':'background:var(--br-gray);color:#7a9bb5'}">${internal?'완료':'미완료'}</span></div>`;
+          <div class="chkrow"><input type="checkbox" id="mc-c1" ${chk1?'checked':''} style="accent-color:#5a9fd4" onchange="saveReqModal('${rc.jobNo}','chk1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-c1">심사주기 안내 1차</label><span class="chip ${chk1?'cb':'cgr'}">${chk1?'완료':'미완료'}</span></div>
+          ${chk1?`<div class="chkrow" style="${sub}"><input type="checkbox" id="mc-i1" ${intent1?'checked':''} style="accent-color:#5a9fd4" onchange="saveReqModal('${rc.jobNo}','intent1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-i1" style="color:#5a9fd4">🔵 인증유지의사 있음</label><span class="chip ${intent1?'cb':'cgr'}">${intent1?'확인':'미확인'}</span></div><div class="chkrow" style="${sub}"><input type="checkbox" id="mc-r1" ${revoke1?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${rc.jobNo}','revoke1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-r1" style="color:#ff6b6b">철회 요청</label><span class="chip ${revoke1?'cr':'cgr'}">${revoke1?'요청됨':'미요청'}</span></div>`:''}
+          <div class="chkrow"><input type="checkbox" id="mc-int" ${internal?'checked':''} style="accent-color:#b06aff" onchange="saveReqModal('${rc.jobNo}','internal',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-int">내부심사</label><span class="chip" style="${internal?'background:#2a1a40;color:#b06aff':'background:var(--br-gray);color:#7a9bb5'}">${internal?'완료':'미완료'}</span></div>`;
       }else{
-        // FSSC: 1차 + 2차 모두
         const chk2=c['chk2']||false,intent2=c['intent2']||false,revoke2=c['revoke2']||false;
         chkHtml=`
-          <div class="chkrow"><input type="checkbox" id="mc-c1" ${chk1?'checked':''} style="accent-color:#5a9fd4" onchange="saveReqModal('${r.jobNo}','chk1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-c1">심사주기 안내 1차</label><span class="chip ${chk1?'cb':'cgr'}">${chk1?'완료':'미완료'}</span></div>
-          ${chk1?`<div class="chkrow" style="${sub}"><input type="checkbox" id="mc-i1" ${intent1?'checked':''} style="accent-color:#5a9fd4" onchange="saveReqModal('${r.jobNo}','intent1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-i1" style="color:#5a9fd4">🔵 인증유지의사 있음</label><span class="chip ${intent1?'cb':'cgr'}">${intent1?'확인':'미확인'}</span></div><div class="chkrow" style="${sub}"><input type="checkbox" id="mc-r1" ${revoke1?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${r.jobNo}','revoke1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-r1" style="color:#ff6b6b">철회 요청</label><span class="chip ${revoke1?'cr':'cgr'}">${revoke1?'요청됨':'미요청'}</span></div>`:''}
-          <div class="chkrow"><input type="checkbox" id="mc-c2" ${chk2?'checked':''} style="accent-color:#4caf8a" onchange="saveReqModal('${r.jobNo}','chk2',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-c2">심사주기 안내 2차</label><span class="chip ${chk2?'cg':'cgr'}">${chk2?'완료':'미완료'}</span></div>
-          ${chk2?`<div class="chkrow" style="${sub}"><input type="checkbox" id="mc-i2" ${intent2?'checked':''} style="accent-color:#4caf8a" onchange="saveReqModal('${r.jobNo}','intent2',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-i2" style="color:#4caf8a">🔵 인증유지의사 있음</label><span class="chip ${intent2?'cg':'cgr'}">${intent2?'확인':'미확인'}</span></div><div class="chkrow" style="${sub}"><input type="checkbox" id="mc-r2" ${revoke2?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${r.jobNo}','revoke2',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-r2" style="color:#ff6b6b">철회 요청</label><span class="chip ${revoke2?'cr':'cgr'}">${revoke2?'요청됨':'미요청'}</span></div>`:''}
-          <div class="chkrow"><input type="checkbox" id="mc-int" ${internal?'checked':''} style="accent-color:#b06aff" onchange="saveReqModal('${r.jobNo}','internal',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-int">내부심사</label><span class="chip" style="${internal?'background:#2a1a40;color:#b06aff':'background:var(--br-gray);color:#7a9bb5'}">${internal?'완료':'미완료'}</span></div>`;
+          <div class="chkrow"><input type="checkbox" id="mc-c1" ${chk1?'checked':''} style="accent-color:#5a9fd4" onchange="saveReqModal('${rc.jobNo}','chk1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-c1">심사주기 안내 1차</label><span class="chip ${chk1?'cb':'cgr'}">${chk1?'완료':'미완료'}</span></div>
+          ${chk1?`<div class="chkrow" style="${sub}"><input type="checkbox" id="mc-i1" ${intent1?'checked':''} style="accent-color:#5a9fd4" onchange="saveReqModal('${rc.jobNo}','intent1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-i1" style="color:#5a9fd4">🔵 인증유지의사 있음</label><span class="chip ${intent1?'cb':'cgr'}">${intent1?'확인':'미확인'}</span></div><div class="chkrow" style="${sub}"><input type="checkbox" id="mc-r1" ${revoke1?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${rc.jobNo}','revoke1',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-r1" style="color:#ff6b6b">철회 요청</label><span class="chip ${revoke1?'cr':'cgr'}">${revoke1?'요청됨':'미요청'}</span></div>`:''}
+          <div class="chkrow"><input type="checkbox" id="mc-c2" ${chk2?'checked':''} style="accent-color:#4caf8a" onchange="saveReqModal('${rc.jobNo}','chk2',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-c2">심사주기 안내 2차</label><span class="chip ${chk2?'cg':'cgr'}">${chk2?'완료':'미완료'}</span></div>
+          ${chk2?`<div class="chkrow" style="${sub}"><input type="checkbox" id="mc-i2" ${intent2?'checked':''} style="accent-color:#4caf8a" onchange="saveReqModal('${rc.jobNo}','intent2',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-i2" style="color:#4caf8a">🔵 인증유지의사 있음</label><span class="chip ${intent2?'cg':'cgr'}">${intent2?'확인':'미확인'}</span></div><div class="chkrow" style="${sub}"><input type="checkbox" id="mc-r2" ${revoke2?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${rc.jobNo}','revoke2',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-r2" style="color:#ff6b6b">철회 요청</label><span class="chip ${revoke2?'cr':'cgr'}">${revoke2?'요청됨':'미요청'}</span></div>`:''}
+          <div class="chkrow"><input type="checkbox" id="mc-int" ${internal?'checked':''} style="accent-color:#b06aff" onchange="saveReqModal('${rc.jobNo}','internal',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc-int">내부심사</label><span class="chip" style="${internal?'background:#2a1a40;color:#b06aff':'background:var(--br-gray);color:#7a9bb5'}">${internal?'완료':'미완료'}</span></div>`;
       }
     }else if(ctx==='revoke'){
       chkTitle='철회 처리';
-      chkHtml=`<div class="chkrow"><input type="checkbox" id="mc0" ${c['chk3']?'checked':''} style="accent-color:#f0a040" onchange="saveReqModal('${r.jobNo}','chk3',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc0">컨설팅사 안내</label><span class="chip ${c['chk3']?'co':'cgr'}">${c['chk3']?'완료':'미완료'}</span></div><div class="chkrow"><input type="checkbox" id="mc1" ${c['chk4']?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${r.jobNo}','chk4',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc1">철회예정 공문 발송</label><span class="chip ${c['chk4']?'cr':'cgr'}">${c['chk4']?'완료':'미완료'}</span></div>`;
+      chkHtml=`<div class="chkrow"><input type="checkbox" id="mc0" ${c['chk3']?'checked':''} style="accent-color:#f0a040" onchange="saveReqModal('${rc.jobNo}','chk3',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc0">컨설팅사 안내</label><span class="chip ${c['chk3']?'co':'cgr'}">${c['chk3']?'완료':'미완료'}</span></div><div class="chkrow"><input type="checkbox" id="mc1" ${c['chk4']?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${rc.jobNo}','chk4',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc1">철회예정 공문 발송</label><span class="chip ${c['chk4']?'cr':'cgr'}">${c['chk4']?'완료':'미완료'}</span></div>`;
     }else{
       chkTitle='요청 처리';
-      chkHtml=`<div class="chkrow"><input type="checkbox" id="mc0" ${c['suspend']?'checked':''} style="accent-color:#f0a040" onchange="saveReqModal('${r.jobNo}','suspend',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc0">정지 요청</label><span class="chip ${c['suspend']?'co':'cgr'}">${c['suspend']?'요청됨':'미요청'}</span></div><div class="chkrow"><input type="checkbox" id="mc1" ${c['revoke']?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${r.jobNo}','revoke',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc1">철회 요청</label><span class="chip ${c['revoke']?'cr':'cgr'}">${c['revoke']?'요청됨':'미요청'}</span></div>`;
+      chkHtml=`<div class="chkrow"><input type="checkbox" id="mc0" ${c['suspend']?'checked':''} style="accent-color:#f0a040" onchange="saveReqModal('${rc.jobNo}','suspend',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc0">정지 요청</label><span class="chip ${c['suspend']?'co':'cgr'}">${c['suspend']?'요청됨':'미요청'}</span></div><div class="chkrow"><input type="checkbox" id="mc1" ${c['revoke']?'checked':''} style="accent-color:#ff6b6b" onchange="saveReqModal('${rc.jobNo}','revoke',this.checked,${idx},'${ctx}')"><label class="chklbl" for="mc1">철회 요청</label><span class="chip ${c['revoke']?'cr':'cgr'}">${c['revoke']?'요청됨':'미요청'}</span></div>`;
     }
-    document.getElementById('m-title').innerHTML=`${r.nameKo||r.nameEn||'업체 상세'}${isOverseas?' <span class="chip-overseas">해외</span>':''}`;
+
+    // 수정 여부 표시
+    const hasEdit=Object.keys(ed).length>0;
+
+    document.getElementById('m-title').innerHTML=`${rc.nameKo||rc.nameEn||'업체 상세'}${isOverseas?' <span class="chip-overseas">해외</span>':''}${hasEdit?' <span class="chip cb" style="font-size:10px">수정됨</span>':''}`;
     document.getElementById('m-body').innerHTML=`
-      <div class="msec"><div class="mstitle">기본 정보</div><div class="mgrid">
-        <span class="ml">출처</span><span class="mv">${r.src==='IGC'?'<span class="chip cb">IGC (FSMS)</span>':'<span class="chip cgr">FSSC</span>'}</span>
-        <span class="ml">현황</span><span class="mv">${statusChip(r.status)}</span>
-        <span class="ml">국가</span><span class="mv">${r.country||'KOREA'}${isOverseas?' <span class="chip-overseas">해외</span>':''}</span>
-        <span class="ml">컨설팅사</span><span class="mv">${r.partner||'-'}</span>
-        <span class="ml">컨설팅사 이메일</span><span class="mv">${r.consultEmail||findEmail(r.partner)||'<span style="color:var(--muted)">미등록</span>'}</span>
-        <span class="ml">잡넘버</span><span class="mv hi">${r.jobNo}</span>
-        <span class="ml">COID</span><span class="mv">${r.coid||'-'}</span>
+      <div class="msec"><div class="mstitle" style="display:flex;align-items:center;justify-content:space-between">
+        기본 정보
+        <button class="tbtn" id="edit-btn" style="font-size:11px;padding:3px 10px" onclick="toggleEditMode(${idx},'${ctx}')">✏️ 수정</button>
+      </div>
+      <div class="mgrid" id="modal-view-mode">
+        <span class="ml">출처</span><span class="mv">${rc.src==='IGC'?'<span class="chip cb">IGC (FSMS)</span>':'<span class="chip cgr">FSSC</span>'}</span>
+        <span class="ml">현황</span><span class="mv">${statusChip(rc.status)}</span>
+        <span class="ml">국가</span><span class="mv">${rc.country||'KOREA'}${isOverseas?' <span class="chip-overseas">해외</span>':''}</span>
+        <span class="ml">컨설팅사</span><span class="mv">${rc.partner||'-'}</span>
+        <span class="ml">컨설팅사 이메일</span><span class="mv">${rc.consultEmail||findEmail(rc.partner)||'<span style="color:var(--muted)">미등록</span>'}</span>
+        <span class="ml">잡넘버</span><span class="mv hi">${rc.jobNo}</span>
+        <span class="ml">COID</span><span class="mv">${rc.coid||'-'}</span>
       </div></div>
       <div class="msec"><div class="mstitle">업체명</div><div class="mgrid">
-        <span class="ml">국문</span><span class="mv">${r.nameKo||'-'}</span>
-        <span class="ml">영문</span><span class="mv">${r.nameEn||'-'}</span>
+        <span class="ml">국문</span><span class="mv">${rc.nameKo||'-'}</span>
+        <span class="ml">영문</span><span class="mv">${rc.nameEn||'-'}</span>
       </div></div>
       <div class="msec"><div class="mstitle">인증 일정</div><div class="mgrid">
-        <span class="ml">발행일</span><span class="mv">${fmt(r.issuedDate)}</span>
-        <span class="ml">만료일</span><span class="mv">${fmt(r.expDate)}</span>
+        <span class="ml">발행일</span><span class="mv">${fmt(rc.issuedDate)}</span>
+        <span class="ml">만료일</span><span class="mv">${fmt(rc.expDate)}</span>
         <span class="ml">남은 기간</span><span class="mv" style="${ddayCol};font-weight:700">${ddayTxt}</span>
-        ${r.suspendDate?`<span class="ml">정지날짜</span><span class="mv">${fmt(r.suspendDate)}</span>`:''}
+        ${rc.suspendDate?`<span class="ml">정지날짜</span><span class="mv">${fmt(rc.suspendDate)}</span>`:''}
       </div></div>
       <div class="msec"><div class="mstitle">업체 연락처</div><div class="mgrid">
-        <span class="ml">이메일</span><span class="mv">${r.email||'-'}</span>
-        <span class="ml">전화번호</span><span class="mv">${r.phone||'-'}</span>
-        <span class="ml">주소</span><span class="mv" style="white-space:normal">${r.address||'-'}</span>
+        <span class="ml">이메일</span><span class="mv">${rc.email||'-'}</span>
+        <span class="ml">전화번호</span><span class="mv">${rc.phone||'-'}</span>
+        <span class="ml">주소</span><span class="mv" style="white-space:normal">${rc.address||'-'}</span>
       </div></div>
       <div class="msec"><div class="mstitle">${chkTitle}</div>${chkHtml}</div>`;
     document.getElementById('modal').classList.add('on');
+    // 현재 열린 모달 정보 저장
+    document.getElementById('modal')._idx=idx;
+    document.getElementById('modal')._ctx=ctx;
   }catch(e){console.error('openModal 오류:',e);}
 }
-function saveReqModal(jobNo,field,val,idx,ctx){
+function toggleEditMode(idx,ctx){
+  const r=merged[idx];if(!r)return;
+  const edits=getEdits();
+  const ed=edits[r.jobNo]||{};
+  const rc={...r,...ed};
+  // 수정 폼으로 교체
+  const grid=document.getElementById('modal-view-mode');
+  const btn=document.getElementById('edit-btn');
+  if(btn.textContent.includes('수정')){
+    // → 수정 모드
+    btn.textContent='💾 저장';
+    btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
+    btn.onclick=()=>saveEditMode(idx,ctx);
+    grid.innerHTML=`
+      <span class="ml">출처</span><span class="mv">${rc.src==='IGC'?'<span class="chip cb">IGC</span>':'<span class="chip cgr">FSSC</span>'}</span>
+      <span class="ml">현황</span><span class="mv"><select id="ed-status" style="padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px">
+        <option ${rc.status==='정상'?'selected':''}>정상</option>
+        <option ${rc.status==='진행중'?'selected':''}>진행중</option>
+        <option ${rc.status==='정지'?'selected':''}>정지</option>
+        <option ${rc.status==='만료'?'selected':''}>만료</option>
+        <option ${rc.status==='취소'?'selected':''}>취소</option>
+      </select></span>
+      <span class="ml">컨설팅사</span><span class="mv"><input id="ed-partner" value="${rc.partner||''}" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></span>
+      <span class="ml">업체명 (국문)</span><span class="mv"><input id="ed-nameKo" value="${rc.nameKo||''}" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></span>
+      <span class="ml">업체명 (영문)</span><span class="mv"><input id="ed-nameEn" value="${rc.nameEn||''}" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></span>
+      <span class="ml">COID</span><span class="mv"><input id="ed-coid" value="${rc.coid||''}" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></span>
+      <span class="ml">발행일</span><span class="mv"><input id="ed-issued" type="date" value="${fmt(rc.issuedDate)!=='-'?fmt(rc.issuedDate):''}" style="padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></span>
+      <span class="ml">만료일</span><span class="mv"><input id="ed-exp" type="date" value="${fmt(rc.expDate)!=='-'?fmt(rc.expDate):''}" style="padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></span>
+      <span class="ml">이메일</span><span class="mv"><input id="ed-email" value="${rc.email||''}" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></span>
+      <span class="ml">전화번호</span><span class="mv"><input id="ed-phone" value="${rc.phone||''}" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></span>
+      <span class="ml">주소</span><span class="mv"><input id="ed-address" value="${rc.address||''}" style="width:100%;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px"></span>`;
+  }
+}
+
+function saveEditMode(idx,ctx){
+  const r=merged[idx];if(!r)return;
+  const edits=getEdits();
+  const ed={
+    status:document.getElementById('ed-status')?.value||r.status,
+    partner:document.getElementById('ed-partner')?.value||r.partner,
+    nameKo:document.getElementById('ed-nameKo')?.value||r.nameKo,
+    nameEn:document.getElementById('ed-nameEn')?.value||r.nameEn,
+    coid:document.getElementById('ed-coid')?.value||r.coid,
+    issuedDate:parseDate(document.getElementById('ed-issued')?.value)||r.issuedDate,
+    expDate:parseDate(document.getElementById('ed-exp')?.value)||r.expDate,
+    email:document.getElementById('ed-email')?.value||r.email,
+    phone:document.getElementById('ed-phone')?.value||r.phone,
+    address:document.getElementById('ed-address')?.value||r.address,
+  };
+  edits[r.jobNo]=ed;
+  saveEdits(edits);
+  // merged에도 즉시 반영
+  Object.assign(merged[idx],ed);
+  renderDashContent();renderAll();
+  openModal(idx,ctx);
+}
   const c=getChecks();if(!c[jobNo])c[jobNo]={};c[jobNo][field]=val;saveChecks(c);
   renderDashContent();renderAll();openModal(idx,ctx);
 }
@@ -934,6 +1178,7 @@ function renderEmailTab(){
     return`<tr>
       <td>${k}</td>
       <td>${entry.email||''}</td>
+      <td>${entry.phone||''}</td>
       <td>
         <div class="alias-tags" ondblclick="quickAddAlias(event,'${kEsc}')" title="빈 곳을 더블클릭하여 별칭 추가">
           ${aliases}
@@ -967,9 +1212,10 @@ function editAlias(name, oldKw, el){
 }
 function addEmail(){
   const name=document.getElementById('ei-name').value.trim(),email=document.getElementById('ei-email').value.trim();
+  const phone=document.getElementById('ei-phone').value.trim();
   if(!name||!email){showMsg('이름과 이메일을 입력해 주세요.');return;}
-  const emails=getEmails();emails[name]={email,aliases:emails[name]?.aliases||[]};saveEmails(emails);
-  document.getElementById('ei-name').value='';document.getElementById('ei-email').value='';
+  const emails=getEmails();emails[name]={email,phone,aliases:emails[name]?.aliases||[]};saveEmails(emails);
+  document.getElementById('ei-name').value='';document.getElementById('ei-email').value='';document.getElementById('ei-phone').value='';
   renderEmailTab();showMsg('저장됐어요.');
 }
 function addAlias(){
