@@ -262,6 +262,7 @@ body.light .mini-cell.today-mini{background:#fff7f0}
   <div class="tab" data-page="cal" onclick="goTab('cal',this)" draggable="true">📅 달력</div>
   <div class="tab" data-page="upd" onclick="goTab('upd',this)" draggable="true">⚠️ 업데이트 필요 <span class="badge r" id="cnt-upd">0</span></div>
   <div class="tab" data-page="email" onclick="goTab('email',this)" draggable="true">컨설팅사 이메일</div>
+  <div class="tab" data-page="notice" onclick="goTab('notice',this)" draggable="true">📢 단톡 공지 생성기</div>
 </div>
 
 <!-- 대시보드 -->
@@ -386,7 +387,94 @@ body.light .mini-cell.today-mini{background:#fff7f0}
   </div>
 </div>
 
-<!-- 상세 모달 -->
+<!-- 단톡 공지 생성기 -->
+<div class="page" id="page-notice">
+  <div style="max-width:900px">
+    <!-- 상단 설정 -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;align-items:flex-end">
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px">규격</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);cursor:pointer;font-size:13px">
+            <input type="checkbox" id="nf-fssc22" checked style="accent-color:var(--accent)"> FSSC 22000
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);cursor:pointer;font-size:13px">
+            <input type="checkbox" id="nf-gic" style="accent-color:var(--accent)"> GIC ISO 22000
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);cursor:pointer;font-size:13px">
+            <input type="checkbox" id="nf-igc" style="accent-color:var(--accent)"> IGC ISO 22000
+          </label>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px">인증 유형</div>
+        <div style="display:flex;gap:6px">
+          <label style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);cursor:pointer;font-size:13px">
+            <input type="radio" name="nf-type" id="nf-suspend" value="정지" checked style="accent-color:var(--accent)"> 정지
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);cursor:pointer;font-size:13px">
+            <input type="radio" name="nf-type" id="nf-revoke" value="철회" style="accent-color:var(--accent)"> 철회
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 업체 선택 + 결과 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start">
+      <!-- 단수건 -->
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="padding:12px 16px;background:var(--panel2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-weight:600">
+          <input type="radio" name="nf-multi" id="nf-single" value="single" checked style="accent-color:var(--accent);width:15px;height:15px">
+          <label for="nf-single" style="cursor:pointer">단수 건</label>
+        </div>
+        <div style="padding:12px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">업체 선택 (단수)</div>
+          <select id="nf-single-item" style="width:100%;padding:6px 8px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px" onchange="buildNotice()">
+            <option value="">업체 선택...</option>
+          </select>
+          <div style="font-size:11px;color:var(--muted);margin:10px 0 5px">사유</div>
+          <select id="nf-single-reason" style="width:100%;padding:6px 8px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px" onchange="buildNotice()">
+            <option value="">사유 선택</option>
+            <option>후속 심사 미진행</option>
+            <option>컨설팅사 요청</option>
+            <option>고객사 요청</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 복수건 -->
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="padding:12px 16px;background:var(--panel2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-weight:600">
+          <input type="radio" name="nf-multi" id="nf-multi-r" value="multi" style="accent-color:var(--accent);width:15px;height:15px">
+          <label for="nf-multi-r" style="cursor:pointer">복수 건</label>
+        </div>
+        <div style="padding:12px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">업체 선택 (Ctrl+클릭 다중선택)</div>
+          <select id="nf-multi-items" multiple style="width:100%;padding:4px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px;min-height:100px" onchange="buildNotice()">
+          </select>
+          <div style="font-size:11px;color:var(--muted);margin:10px 0 5px">사유 (공통)</div>
+          <select id="nf-multi-reason" style="width:100%;padding:6px 8px;border-radius:5px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-size:12px" onchange="buildNotice()">
+            <option value="">사유 선택</option>
+            <option>후속 심사 미진행</option>
+            <option>컨설팅사 요청</option>
+            <option>고객사 요청</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 결과 -->
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="padding:12px 16px;background:var(--panel2);border-bottom:1px solid var(--border);font-weight:600">공지 내용</div>
+        <div style="padding:12px">
+          <div id="nf-result" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;font-size:13px;color:var(--text);white-space:pre-wrap;line-height:2;min-height:160px;word-break:break-all">설정 후 자동으로 생성됩니다</div>
+          <div style="text-align:right;margin-top:10px">
+            <button class="tbtn pri" onclick="copyNoticePage()">📋 복사</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="mbg" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="mhd">
@@ -1476,8 +1564,82 @@ function goTab(id,el){
   else{const t=document.querySelector(`.tab[data-page="${id}"]`);if(t)t.classList.add('on');}
   if(id==='email')renderEmailTab();
   if(id==='cal')renderCal();
+  if(id==='notice')initNoticePage();
 }
 function goTabById(id){goTab(id,null);}
+
+// ── 단톡 공지 탭 ──
+function initNoticePage(){
+  const checks=getChecks();
+  const suspendList=merged.filter(r=>(checks[r.jobNo]||{}).suspend);
+  const revokeList=merged.filter(r=>(checks[r.jobNo]||{}).revoke);
+  const allList=[...suspendList,...revokeList];
+  const makeOpts=list=>list.map(r=>{
+    const c=checks[r.jobNo]||{};
+    const reason=c.suspendReason||c.revokeReason||'';
+    return`<option value="${r.jobNo}">${r.nameKo||r.nameEn}${reason?' ('+reason+')':''}</option>`;
+  }).join('');
+  const opts=makeOpts(allList);
+  const singleSel=document.getElementById('nf-single-item');
+  const multiSel=document.getElementById('nf-multi-items');
+  if(singleSel)singleSel.innerHTML='<option value="">업체 선택...</option>'+opts;
+  if(multiSel)multiSel.innerHTML=opts||'<option disabled>요청 업체 없음</option>';
+  // 라디오/체크 변경 시 buildNotice 연결
+  ['nf-single','nf-multi-r','nf-fssc22','nf-gic','nf-igc','nf-suspend','nf-revoke'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.onchange=buildNotice;
+  });
+  buildNotice();
+}
+
+function buildNotice(){
+  const isMulti=document.getElementById('nf-multi-r')?.checked;
+  const type=document.querySelector('input[name="nf-type"]:checked')?.value||'정지';
+  const schemes=[];
+  if(document.getElementById('nf-fssc22')?.checked)schemes.push('FSSC 22000');
+  if(document.getElementById('nf-gic')?.checked)schemes.push('GIC ISO 22000');
+  if(document.getElementById('nf-igc')?.checked)schemes.push('IGC ISO 22000');
+  const schemeStr=schemes.join(', ')||'[규격 선택]';
+  const checks=getChecks();
+  let lines=`아래 업체 ${schemeStr} 인증 ${type} 진행하겠습니다\n\n`;
+  if(!isMulti){
+    const jobNo=document.getElementById('nf-single-item')?.value;
+    const reason=document.getElementById('nf-single-reason')?.value||'';
+    if(!jobNo){lines+='(업체를 선택해 주세요)';}
+    else{
+      const r=merged.find(x=>x.jobNo===jobNo);
+      if(r){
+        const c=checks[jobNo]||{};
+        const finalReason=reason||c.suspendReason||c.revokeReason||'';
+        lines+=`- ${r.nameKo||r.nameEn} / ${r.partner||'-'}\n`;
+        if(finalReason)lines+=`  사유 : ${finalReason}`;
+      }
+    }
+  }else{
+    const sel=document.getElementById('nf-multi-items');
+    const selected=sel?Array.from(sel.selectedOptions).map(o=>o.value):[];
+    const reason=document.getElementById('nf-multi-reason')?.value||'';
+    if(!selected.length){lines+='(업체를 선택해 주세요)';}
+    else{
+      selected.forEach(jobNo=>{
+        const r=merged.find(x=>x.jobNo===jobNo);
+        if(r)lines+=`- ${r.nameKo||r.nameEn} / ${r.partner||'-'}\n`;
+      });
+      if(reason)lines+=`  사유 : ${reason}`;
+    }
+  }
+  const el=document.getElementById('nf-result');
+  if(el)el.textContent=lines.trim();
+}
+
+function copyNoticePage(){
+  const text=document.getElementById('nf-result')?.textContent||'';
+  if(!text||text==='설정 후 자동으로 생성됩니다')return;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.querySelector('#page-notice .tbtn.pri');
+    if(btn){btn.textContent='✅ 복사됨';setTimeout(()=>btn.textContent='📋 복사',2000);}
+  });
+}
 
 // ── INIT ──
 function initApp() {
