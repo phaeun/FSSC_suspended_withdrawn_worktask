@@ -731,10 +731,40 @@ function renderSuspendRows(rows){
 }
 function renderRevokeRows(rows){
   if(!rows.length)return'<tr class="empty"><td colspan="5">해당 없음</td></tr>';
-  return rows.map(r=>{
+  const checks=getChecks();
+  // 공문 발송된 것은 맨 아래로
+  const sorted=[...rows].sort((a,b)=>{
+    const ca=checks[a.jobNo]||{},cb=checks[b.jobNo]||{};
+    const da=ca.chk4?1:0, db=cb.chk4?1:0;
+    if(da!==db)return da-db;
+    // 정지날짜 오래된 순 유지
+    if(!a.suspendDate&&!b.suspendDate)return 0;
+    if(!a.suspendDate)return 1;if(!b.suspendDate)return -1;
+    return a.suspendDate-b.suspendDate;
+  });
+  return sorted.map(r=>{
+    const c=checks[r.jobNo]||{};
     const el=r.suspendDate?Math.round((TODAY-r.suspendDate)/86400000):null;
     const cls=el===null?'cgr':el>=165?'cr':el>=100?'co':'cb';
-    return`<tr onclick="openModal(${r.idx},'revoke')"><td title="${r.partner}">${r.partner||'-'}</td><td title="${r.nameKo}">${r.nameKo||r.nameEn||'-'}</td><td>${r.jobNo}</td><td>${fmt(r.suspendDate)}</td><td><span class="chip ${cls}">${el!==null?el+'일 경과':'날짜없음'}</span></td></tr>`;
+    // 엑셀 녹색 강조4 기준
+    // 80% 더 밝게 (심사주기 안내 1차 완료): #e2efda (light)
+    // 40% 더 밝게 (공문 발송까지): #a9d18e → 다크모드에선 어둡게 조정
+    let rowBg='';
+    const isLight=document.body.classList.contains('light');
+    if(c.chk4){
+      // 공문 발송 완료 - 짙은 초록 (40% 더 밝게)
+      rowBg=isLight?'background:#a9d18e':'background:#1a3a1a';
+    }else if(c.chk3){
+      // 심사주기 안내 완료 - 연두색 (80% 더 밝게)
+      rowBg=isLight?'background:#e2efda':'background:#1a2e1a';
+    }
+    return`<tr onclick="openModal(${r.idx},'revoke')" style="${rowBg}">
+      <td title="${r.partner}">${r.partner||'-'}</td>
+      <td title="${r.nameKo}">${r.nameKo||r.nameEn||'-'}</td>
+      <td>${r.jobNo}</td>
+      <td>${fmt(r.suspendDate)}</td>
+      <td><span class="chip ${cls}">${el!==null?el+'일 경과':'날짜없음'}</span></td>
+    </tr>`;
   }).join('');
 }
 // ── 미니 달력 ──
